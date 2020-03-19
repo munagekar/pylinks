@@ -22,7 +22,7 @@ class User(BaseModel):
 
 class Team(BaseModel):
     id: Optional[int] = None
-    teamname: str
+    team_name: str
     created: Optional[datetime] = None
 
 
@@ -78,22 +78,22 @@ app = FastAPI()
 
 
 @app.on_event("startup")
-async def startup():
+async def startup() -> None:
     await database.connect()
 
 
 @app.on_event("shutdown")
-async def shutdown():
+async def shutdown() -> None:
     await database.disconnect()
 
 
 @app.get("/")
-async def read_root():
+async def read_root() -> str:
     return "Welcome to Pylinks"
 
 
 @app.post("/user/{username}", responses={400: {"detail": "Username Not Unique"}})
-async def create_user(username: str = Path(..., max_length=25)):
+async def create_user(username: str = Path(..., max_length=25)) -> User:
     try:
         created = datetime.utcnow()
         query = users.insert().values(username=username, created=created)
@@ -107,12 +107,14 @@ async def create_user(username: str = Path(..., max_length=25)):
 
 
 @app.post("/team/{team_name}", responses={400: {"detail": "Teamname Not Unique"}})
-async def create_team(*, team_name: str = Path(..., max_length=25), team_roles: List[TeamRole]):
+async def create_team(*, team_name: str = Path(..., max_length=25), team_roles: List[TeamRole]) -> Team:
     try:
         created = datetime.utcnow()
-        query = teams.insert.values(teamname=team_name, created=created)
+        query = teams.insert().values(teamname=team_name, created=created)
         team_id = await database.execute(query)
         logger.info("Created New Team. Team:%s Id:%s", team_name, team_id)
     except sqlite3.IntegrityError:
         logger.info("Failed to Create New Team. Team:%s already exists", team_name)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Teamname Not Unique")
+
+    return Team(id=team_id, team_name=team_name, created=created)

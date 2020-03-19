@@ -12,6 +12,7 @@ pytest-testmon = "*"
 pytest-cov = "*"
 bump2version = "*"
 mypy = "*"
+sqlalchemy-stubs = "*"
 
 [packages]
 fastapi = "*"
