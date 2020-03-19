@@ -15,9 +15,6 @@ else
   echo "${GREEN}Success Black Formatter${NC}"
 fi
 
-# Add An Empty Line at the End of Files
-git ls-files -- . ':!:*__init__.py' -z | while IFS= read -rd '' f; do tail -c1 < "$f" | read -r _ || echo >> "$f"; done
-
 # Run Isort
 pipenv run isort -rc . -q
 isort_not_okay=$?
