@@ -1,0 +1,59 @@
+#!/bin/sh
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# Lint Code
+pipenv run black --quiet -l 120 pylinks tests
+black_not_okay=$?
+if [[ "$black_not_okay" -gt 0 ]]
+then
+  echo "${RED}Black Failed ${NC} : Required status check"
+  echo "Help : black pylinks tests"
+else
+  echo "${GREEN}Success Black Formatter${NC}"
+fi
+
+# Add An Empty Line at the End of Files
+git ls-files -- . ':!:*__init__.py' -z | while IFS= read -rd '' f; do tail -c1 < "$f" | read -r _ || echo >> "$f"; done
+
+# Run Isort
+pipenv run isort -rc . -q
+isort_not_okay=$?
+if [[ "$isort_not_okay" -gt 0 ]]
+then
+  echo "${RED}Isort Failed ${NC} : Required status check"
+  echo "Help : pipenv install --dev"
+  echo "Help : pipenv run isort -rc ."
+else
+  echo "${GREEN}Success Isort Okay${NC}"
+fi
+
+# Run Flake
+pipenv run flake8 pylinks
+flake_not_okay=$?
+if [[ "$flake_not_okay" -gt 0 ]]
+then
+  echo "${RED}Flake Failed ${NC} : Required status check"
+  echo "Help : pipenv install --dev"
+  echo "Help : pipenv run flake8 pylinks"
+else
+  echo "${GREEN}Success FLAKE Run${NC}"
+fi
+
+finalstatus=$((black_not_okay|isort_not_okay|flake_not_okay))
+if [[ "$finalstatus" -gt 0 ]]
+then
+  echo "${RED}Failed to Commit${NC}"
+  echo "You can try to fix required statuses or skip status checks"
+  echo "Help : git commit --no-verify"
+else
+  echo "${GREEN}Commit Hook Success${NC}"
+fi
+
+# Add the files that changed to be committed
+git add `git diff --diff-filter=d --name-only --cached`
+
+exit $finalstatus
+
