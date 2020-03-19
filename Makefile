@@ -1,10 +1,11 @@
 LOG-DIR:= .logs
-
+DATA-DIR:= data
 .PHONY: init lint test coverage
 
 init:
 	git config core.hooksPath .hooks
 	mkdir $(LOG-DIR)
+	mkdir $(DATA-DIR)
 
 lint:
 	pipenv run black -l 120 pylinks
@@ -18,4 +19,4 @@ coverage:
 	pipenv run python -m pytest --cov=pylinks tests --cov-report term-missing
 
 run-dev:
-	@pipenv run uvicorn pylinks.main:app --reload 
+	@pipenv run uvicorn pylinks.app:app --reload
