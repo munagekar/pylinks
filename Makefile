@@ -1,6 +1,6 @@
 LOG-DIR:= .logs
 DATA-DIR:= data
-.PHONY: init lint test coverage
+.PHONY: init lint test coverage openweb run-dev
 
 init:
 	git config core.hooksPath .hooks
@@ -20,3 +20,6 @@ coverage:
 
 run-dev:
 	@pipenv run uvicorn pylinks.app:app --reload
+
+openweb:
+	open http:://localhost:8000

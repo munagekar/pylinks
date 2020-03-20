@@ -2,11 +2,11 @@ import logging
 import sqlite3
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 import databases
 import sqlalchemy
-from fastapi import FastAPI, HTTPException, Path, status
+from fastapi import FastAPI, HTTPException, Path, Query, status
 from pydantic import BaseModel
 
 logging.basicConfig()
@@ -92,7 +92,12 @@ async def read_root() -> str:
     return "Welcome to Pylinks"
 
 
-@app.post("/user/{username}", responses={400: {"detail": "Username Not Unique"}})
+@app.post(
+    "/user/{username}",
+    responses={400: {"detail": "Username Not Unique"}},
+    response_model=User,
+    response_model_exclude={"id"},
+)
 async def create_user(username: str = Path(..., max_length=25)) -> User:
     try:
         created = datetime.utcnow()
@@ -106,15 +111,38 @@ async def create_user(username: str = Path(..., max_length=25)) -> User:
     return User(id=user_id, username=username, created=created)
 
 
-@app.post("/team/{team_name}", responses={400: {"detail": "Teamname Not Unique"}})
-async def create_team(*, team_name: str = Path(..., max_length=25), team_roles: List[TeamRole]) -> Team:
+@app.post(
+    "/team/{team_name}",
+    responses={400: {"detail": "Teamname Not Unique or Invalid Admin"}, 500: {"detail": "Transaction Rolledback"}},
+    response_model=Team,
+    response_model_exclude={"id"},
+)
+async def create_team(*, team_name: str = Path(..., max_length=25), admin: str = Query(..., max_length=25)) -> Team:
+    query = users.select().where(users.c.username == admin)
+    result = await database.fetch_val(query)
+
+    if result is None:
+        logger.info("Invalid Admin %s", admin)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Admin Username")
+
+    created = datetime.utcnow()
+    transaction = await database.transaction()
     try:
-        created = datetime.utcnow()
-        query = teams.insert().values(teamname=team_name, created=created)
-        team_id = await database.execute(query)
+        try:
+            query = teams.insert().values(teamname=team_name, created=created)
+            team_id = await database.execute(query)
+        except sqlite3.IntegrityError:
+            logger.info("Failed to Create New Team. Team:%s already exists", team_name)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Teamname Not Unique")
+    except HTTPException as e:
+        await transaction.rollback()
+        raise e
+    except BaseException:
+        logger.critical("Transaction Failed!")
+        await transaction.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Transaction Rolledback")
+    else:
+        await transaction.commit()
         logger.info("Created New Team. Team:%s Id:%s", team_name, team_id)
-    except sqlite3.IntegrityError:
-        logger.info("Failed to Create New Team. Team:%s already exists", team_name)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Teamname Not Unique")
 
     return Team(id=team_id, team_name=team_name, created=created)
