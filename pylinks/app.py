@@ -2,28 +2,16 @@ import logging
 import sqlite3
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 import databases
 import sqlalchemy
 from fastapi import FastAPI, HTTPException, Path, Query, status
-from pydantic import BaseModel
+
+from pylinks.models import Team, User
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-
-class User(BaseModel):
-    id: Optional[int] = None
-    username: str
-    created: Optional[datetime] = None
-
-
-class Team(BaseModel):
-    id: Optional[int] = None
-    team_name: str
-    created: Optional[datetime] = None
 
 
 class UserRole(str, Enum):
@@ -33,13 +21,6 @@ class UserRole(str, Enum):
 
 
 USER_ROLE_MAP = {UserRole.READER: 0, UserRole.WRITER: 1, UserRole.ADMIN: 1}
-
-
-class TeamRole(BaseModel):
-    user: User
-    team: Team
-    role: UserRole = UserRole.READER
-
 
 DATABASE_URL = "sqlite:///data/test.db"
 database = databases.Database(DATABASE_URL)
