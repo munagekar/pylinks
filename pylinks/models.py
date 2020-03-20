@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import DATETIME, Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import DATETIME, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from .constants import USER_ROLE_MAP, UserRole
@@ -12,7 +12,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(25), unique=True, index=True, nullable=False)
-    created = Column(DATETIME, nullable=False)
+    created = Column(DATETIME, nullable=False, default=datetime.datetime.utcnow)
 
     team_roles = relationship("TeamRole")
 
@@ -30,8 +30,9 @@ class Team(Base):
 class TeamRole(Base):
     __tablename__ = "team_roles"
 
-    team_id = Column(Integer, ForeignKey("teams.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    row_id = Column(Integer, primary_key=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     role_id = Column(Integer, default=USER_ROLE_MAP[UserRole.READER])
 
     team = relationship("Team")
