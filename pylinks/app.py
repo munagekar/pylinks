@@ -1,47 +1,21 @@
 import logging
 import sqlite3
 from datetime import datetime
-from enum import Enum
 
 import databases
 import sqlalchemy
 from fastapi import FastAPI, HTTPException, Path, Query, status
 
-from pylinks.models import Team, User
+from pylinks.constants import USER_ROLE_MAP, UserRole
+from pylinks.schemas import Team, User
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
-class UserRole(str, Enum):
-    READER = "reader"
-    WRITER = "writer"
-    ADMIN = "admin"
-
-
-USER_ROLE_MAP = {UserRole.READER: 0, UserRole.WRITER: 1, UserRole.ADMIN: 1}
-
 DATABASE_URL = "sqlite:///data/test.db"
 database = databases.Database(DATABASE_URL)
 
-metadata = sqlalchemy.MetaData()
-
-users = sqlalchemy.Table(
-    "users",
-    metadata,
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-    sqlalchemy.Column("username", sqlalchemy.String(25), unique=True, index=True, nullable=False),
-    sqlalchemy.Column("created", sqlalchemy.DATETIME, nullable=False),
-)
-
-teams = sqlalchemy.Table(
-    "teams",
-    metadata,
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-    sqlalchemy.Column("teamname", sqlalchemy.String(25), unique=True, index=True, nullable=False),
-    sqlalchemy.Column("created", sqlalchemy.DATETIME, nullable=False),
-)
 
 team_roles = sqlalchemy.Table(
     "team_roles",
