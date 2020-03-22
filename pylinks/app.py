@@ -3,6 +3,7 @@ import logging
 import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from pylinks import crud, schemas
@@ -21,6 +22,7 @@ app = FastAPI()
 
 @app.on_event("startup")
 def startup():
+    # TODO : Add Periodic Task To Delete Expired Magic Links
     pass
 
 
@@ -97,7 +99,9 @@ def accept_invite(id: uuid.UUID, username: str = Query(..., max_length=25), db: 
 
     if not user_team_role:
         crud.create_team_role(db, team_id=team_invite.team_id, user_id=user.id, role_id=team_invite.role_id)
+    else:
+        user_team_role = user_team_role[0]
+        user_team_role.role_id = max(team_invite.role_id, user_team_role.role_id)
+        db.commit()
 
-    user_team_role = user_team_role[0]
-    user_team_role.role_id = max(team_invite.role_id, user_team_role.role_id)
-    db.commit()
+    return HTMLResponse(status_code=status.HTTP_200_OK)
