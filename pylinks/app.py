@@ -16,6 +16,11 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 
+@app.on_event("startup")
+def startup():
+    pass
+
+
 def get_db():
     try:
         db = SessionLocal()
@@ -48,7 +53,6 @@ def create_user(username: str = Query(..., max_length=25), db: Session = Depends
 def create_team(
     *, teamname: str = Query(..., max_length=25), admin: str = Query(..., max_length=25), db: Session = Depends(get_db)
 ) -> schemas.TeamCreated:
-
     admin_user = crud.get_user(db, admin)
     if not admin_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Admin")

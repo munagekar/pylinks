@@ -1,6 +1,6 @@
 LOG-DIR:= .logs
 DATA-DIR:= data
-.PHONY: init lint test coverage openweb run-dev
+.PHONY: init lint test coverage openweb run-dev cleandb
 
 init:
 	git config core.hooksPath .hooks
@@ -23,3 +23,6 @@ run-dev:
 
 openweb:
 	open http:://localhost:8000
+
+cleandb:
+	rm data/test.db

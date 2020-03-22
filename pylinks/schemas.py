@@ -53,3 +53,8 @@ class TeamRole(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class InviteCreated(BaseModel):
+    id: int
+    expiry: datetime

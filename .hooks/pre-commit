@@ -36,7 +36,17 @@ then
   echo "Help : pipenv install --dev"
   echo "Help : pipenv run flake8 pylinks"
 else
-  echo "${GREEN}Success FLAKE Run${NC}"
+  echo "${GREEN}Success FLAKE${NC}"
+fi
+
+# Run Mypy
+pipenv run mypy pylinks
+mypy_not_okay=$?
+if [[ "$mypy_not_okay" -gt 0 ]]
+then
+  echo "${RED}Mypy Failed ${NC} : Required status check"
+else
+  echo "${GREEN}Success My Py${NC}"
 fi
 
 finalstatus=$((black_not_okay|isort_not_okay|flake_not_okay))

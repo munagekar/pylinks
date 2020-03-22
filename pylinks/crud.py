@@ -39,10 +39,18 @@ def create_team(db: Session, teamname: str, admin: schemas.User) -> models.Team:
         db.commit()
 
     except BaseException:
-        logger.exception()
+        logger.exception("Transaction Commit Failed")
         db.rollback()
         logger.info("Team Creation Rollbacked team: teamname=%s, id=%s", team.teamname, team.id)
         raise Exception("Transaction Rolledback")
 
     db.refresh(team)
     return team
+
+
+def create_invite(db: Session, team: schemas.Team, role: UserRole):
+    role_id = USER_ROLE_MAP[role]
+    invite = models.TeamInvite(team_id=team.id, role_id=role_id)
+    db.add(invite)
+    db.commit()
+    return invite.id, invite.expiry

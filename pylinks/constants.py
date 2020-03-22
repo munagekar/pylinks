@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Dict
 
 
 class UserRole(str, Enum):
@@ -7,4 +8,4 @@ class UserRole(str, Enum):
     ADMIN = "admin"
 
 
-USER_ROLE_MAP = {UserRole.READER: 0, UserRole.WRITER: 1, UserRole.ADMIN: 1}
+USER_ROLE_MAP: Dict[UserRole, int] = {UserRole.READER: 0, UserRole.WRITER: 1, UserRole.ADMIN: 1}
