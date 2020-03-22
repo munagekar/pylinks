@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -36,7 +37,7 @@ def create_team(db: Session, teamname: str, admin: schemas.User) -> models.Team:
         logger.info("Created team: teamname=%s, id=%s", team.teamname, team.id)
         team_role = models.TeamRole(team_id=team.id, user_id=admin.id, role_id=USER_ROLE_MAP[UserRole.ADMIN])
         db.add(team_role)
-        logger.info("Created Admin Role: team_id=%s, user_id=%s", team.id, admin.id)
+        logger.info("Created Admin Role: team_name=%s, user=%s", team.teamname, admin.username)
         db.commit()
 
     except BaseException:
@@ -47,6 +48,48 @@ def create_team(db: Session, teamname: str, admin: schemas.User) -> models.Team:
 
     db.refresh(team)
     return team
+
+
+def create_team_role(db: Session, team_id: int, user_id: int, role_id: int):
+    team_role = models.TeamRole(team_id=team_id, user_id=user_id, role_id=role_id)
+    db.add(team_role)
+    db.commit()
+    logger.info("Created Team Role, Team_id:%s, User_id:%s, Role:%s", team_id, user_id, role_id)
+
+
+def delete_team_role(db: Session, team_id: int, user_id: int, role: UserRole) -> int:
+    """
+    Deletes a Team Role
+
+    Args:
+        db: Database Session
+        team_id: Team ID
+        user_id: User ID
+        role: Role which is to be deleted
+
+    Returns:
+        Number of rows deleted
+    """
+    return (
+        db.query(models.TeamRole)
+        .filter(models.TeamRole.team_id == team_id)
+        .filter(models.TeamRole.user_id == user_id)
+        .filter(models.TeamRole.role_id == USER_ROLE_MAP[role])
+        .delete()
+    )
+
+
+def get_team_roles(
+    db: Session, team_id: Optional[int] = None, user_id: Optional[int] = None, role: Optional[UserRole] = None
+) -> List[models.TeamRole]:
+    query = db.query(models.TeamRole)
+    if team_id:
+        query = query.filter(models.TeamRole.team_id == team_id)
+    if user_id:
+        query = query.filter(models.TeamRole.user_id == user_id)
+    if role:
+        query = query.filter(models.TeamRole.role_id == USER_ROLE_MAP[role])
+    return query.all()
 
 
 def create_invite(db: Session, team: schemas.Team, role: UserRole):
@@ -65,3 +108,8 @@ def get_invites(db: Session, team: schemas.Team, role: Optional[UserRole] = None
         query = query.filter(models.TeamInvite.role_id == USER_ROLE_MAP[role])
 
     return query.all()
+
+
+def get_invite_by_id(db: Session, id: uuid.UUID) -> Optional[models.TeamInvite]:
+    logger.info("Fetch for TeamInvite:%s", id)
+    return db.query(models.TeamInvite).filter(models.TeamInvite.id == id).first()

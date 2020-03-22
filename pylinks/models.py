@@ -67,7 +67,7 @@ class Team(Base):
 
 class TeamRole(Base):
     __tablename__ = "team_roles"
-
+    __table_args__ = (UniqueConstraint("team_id", "user_id"),)
     row_id = Column(Integer, primary_key=True)
     team_id = Column(Integer, ForeignKey("teams.id"), index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)

@@ -1,3 +1,4 @@
+import datetime
 import logging
 import uuid
 
@@ -69,9 +70,7 @@ def create_team(
 
 
 @app.post(
-    "/invite/",
-    responses={400: {"details": "Invalid Teamname or TeamInvite Exists"}},
-    response_model=schemas.InviteCreated,
+    "/invite/", responses={400: {"details": "Invalid Teamname"}}, response_model=schemas.InviteCreated,
 )
 def create_invite(
     teamname: str = Query(..., max_length=25), role: UserRole = UserRole.READER, db: Session = Depends(get_db)
@@ -80,14 +79,25 @@ def create_invite(
     if not team:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Teamname")
 
-    team_invites = crud.get_invites(db, team, role)
-    if team_invites:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Team Invite for Role={role} exists")
-
     id, expiry = crud.create_invite(db, team, role)
     return {"id": id, "expiry": expiry}
 
 
-@app.get("/invite/")
-def accept_invite(id: uuid.UUID, username: str = Query(..., max_length=25)):
-    pass
+@app.get("/invite/", responses={400: {"details": "Invalid Teamname"}, 404: {"details": "Invalid Link"}})
+def accept_invite(id: uuid.UUID, username: str = Query(..., max_length=25), db: Session = Depends(get_db)):
+    user = crud.get_user(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Username")
+
+    team_invite = crud.get_invite_by_id(id)
+    if not team_invite or team_invite.expiry <= datetime.datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Link")
+
+    user_team_role = crud.get_team_roles(db, team_id=team_invite.team_id, user_id=user.id)
+
+    if not user_team_role:
+        crud.create_team_role(db, team_id=team_invite.team_id, user_id=user.id, role_id=team_invite.role_id)
+
+    user_team_role = user_team_role[0]
+    user_team_role.role_id = max(team_invite.role_id, user_team_role.role_id)
+    db.commit()
