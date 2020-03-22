@@ -105,3 +105,17 @@ def accept_invite(id: uuid.UUID, username: str = Query(..., max_length=25), db: 
         db.commit()
 
     return HTMLResponse(status_code=status.HTTP_200_OK)
+
+
+@app.post("/ulink/", responses={400: {"details": "Invalid Username"}, 409: {"details": "Link Already Registered"}})
+def create_link(userlink: schemas.UserLinkCreate, db: Session = Depends(get_db)):
+    user = crud.get_user(db, userlink.username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Username")
+
+    link = crud.get_user_link(db, text=userlink.text, user_id=user.id)
+    if link:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Link Already Exists")
+
+    crud.create_user_link(db, userlink.link, user_id=user.id, text=userlink.text)
+    return HTMLResponse(status_code=status.HTTP_200_OK)

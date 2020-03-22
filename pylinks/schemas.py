@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 from pylinks.constants import UserRole
 
@@ -59,3 +59,9 @@ class TeamRole(BaseModel):
 class InviteCreated(BaseModel):
     id: uuid.UUID
     expiry: datetime
+
+
+class UserLinkCreate(BaseModel):
+    username: str
+    text: str
+    link: HttpUrl

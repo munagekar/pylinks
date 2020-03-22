@@ -113,3 +113,18 @@ def get_invites(db: Session, team: schemas.Team, role: Optional[UserRole] = None
 def get_invite_by_id(db: Session, id: uuid.UUID) -> Optional[models.TeamInvite]:
     logger.info("Fetch for TeamInvite:%s", id)
     return db.query(models.TeamInvite).filter(models.TeamInvite.id == id).first()
+
+
+def create_user_link(db: Session, link: str, user_id: int, text: str):
+    user_link = models.UserLink(link=link, user_id=user_id, text=text)
+    db.add(user_link)
+    db.commit()
+
+
+def get_user_link(db: Session, text: str, user_id: int):
+    return (
+        db.query(models.UserLink)
+        .filter(models.UserLink.text == text)
+        .filter(models.UserLink.user_id == user_id)
+        .first()
+    )
