@@ -1,9 +1,11 @@
 import logging
+import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from pylinks import crud, schemas
+from pylinks.constants import UserRole
 from pylinks.database import SessionLocal, engine
 from pylinks.models import Base
 
@@ -64,3 +66,28 @@ def create_team(
     team = crud.create_team(db=db, teamname=teamname, admin=admin_user)
 
     return schemas.TeamCreated(teamname=team.teamname, created=team.created)
+
+
+@app.post(
+    "/invite/",
+    responses={400: {"details": "Invalid Teamname or TeamInvite Exists"}},
+    response_model=schemas.InviteCreated,
+)
+def create_invite(
+    teamname: str = Query(..., max_length=25), role: UserRole = UserRole.READER, db: Session = Depends(get_db)
+):
+    team = crud.get_team(db, teamname)
+    if not team:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Teamname")
+
+    team_invites = crud.get_invites(db, team, role)
+    if team_invites:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Team Invite for Role={role} exists")
+
+    id, expiry = crud.create_invite(db, team, role)
+    return {"id": id, "expiry": expiry}
+
+
+@app.get("/invite/")
+def accept_invite(id: uuid.UUID, username: str = Query(..., max_length=25)):
+    pass

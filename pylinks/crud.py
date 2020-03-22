@@ -1,4 +1,5 @@
 import logging
+from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -53,4 +54,14 @@ def create_invite(db: Session, team: schemas.Team, role: UserRole):
     invite = models.TeamInvite(team_id=team.id, role_id=role_id)
     db.add(invite)
     db.commit()
+    logger.info("Created Invite Team:%s, Role%s", team.id, role)
     return invite.id, invite.expiry
+
+
+def get_invites(db: Session, team: schemas.Team, role: Optional[UserRole] = None) -> List[models.TeamInvite]:
+    query = db.query(models.TeamInvite).filter(models.TeamInvite.team_id == team.id)
+    logger.info("Fetching Invite For Team_id:%s, role:%s", team.id, role)
+    if role:
+        query = query.filter(models.TeamInvite.role_id == USER_ROLE_MAP[role])
+
+    return query.all()

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import List, Optional
 
@@ -56,5 +57,5 @@ class TeamRole(BaseModel):
 
 
 class InviteCreated(BaseModel):
-    id: int
+    id: uuid.UUID
     expiry: datetime
