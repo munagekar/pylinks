@@ -16,7 +16,6 @@ sqlalchemy-stubs = "*"
 
 [packages]
 fastapi = "*"
-mypy = "*"
 uvicorn = "*"
 sqlalchemy = "*"
 argon2-cffi = "*"
