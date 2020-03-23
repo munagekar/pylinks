@@ -19,7 +19,8 @@ fastapi = "*"
 mypy = "*"
 uvicorn = "*"
 sqlalchemy = "*"
-databases = {extras = ["sqlite"],version = "*"}
+argon2-cffi = "*"
+ujson = "*"
 
 [requires]
 python_version = "3.8"
