@@ -1,10 +1,12 @@
 import datetime
 import logging
 import uuid
+from typing import Dict, Union
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
+from starlette.responses import RedirectResponse
 
 from pylinks import crud, schemas
 from pylinks.constants import UserRole
@@ -119,3 +121,25 @@ def create_link(userlink: schemas.UserLinkCreate, db: Session = Depends(get_db))
 
     crud.create_user_link(db, userlink.link, user_id=user.id, text=userlink.text)
     return HTMLResponse(status_code=status.HTTP_200_OK)
+
+
+@app.get("/ulink")
+def get_link(
+    text: str = Query(..., max_length=25),
+    username: str = Query(..., max_length=25),
+    db: Session = Depends(get_db),
+    redirect: bool = True,
+) -> Union[Dict[str, str], RedirectResponse]:
+    user = crud.get_user(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Username")
+
+    link = crud.get_user_link(db, text, user.id)
+
+    if not link:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link Not found")
+
+    if not redirect:
+        return {"link": link.link}
+
+    return RedirectResponse(url=link.link)

@@ -121,7 +121,7 @@ def create_user_link(db: Session, link: str, user_id: int, text: str):
     db.commit()
 
 
-def get_user_link(db: Session, text: str, user_id: int):
+def get_user_link(db: Session, text: str, user_id: int) -> models.UserLink:
     return (
         db.query(models.UserLink)
         .filter(models.UserLink.text == text)
