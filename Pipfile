@@ -22,6 +22,7 @@ sqlalchemy = "*"
 argon2-cffi = "*"
 ujson = "*"
 starlette = "*"
+environ-config = "*"
 
 [requires]
 python_version = "3.8"

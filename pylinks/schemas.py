@@ -65,3 +65,12 @@ class UserLinkCreate(BaseModel):
     username: str
     text: str
     link: HttpUrl
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    user_id: int
