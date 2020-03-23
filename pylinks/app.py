@@ -29,7 +29,9 @@ ph = argon2.PasswordHasher()
 oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="/token")
 basic_auth = BasicAuth(auto_error=False)
 app = FastAPI()
-KEY = config.read_from_env().key
+env = config.read_from_env()
+KEY = env.key
+DOMAIN = env.domain
 
 
 def get_db():
@@ -49,7 +51,6 @@ def verify_password(plain_password, hashed_password):
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
-    print(f"Token :%s", token)
     credentials_exception = HTTPException(
         status_code=status.HTTP_403_FORBIDDEN, detail="Could not validate credentials"
     )
@@ -84,15 +85,13 @@ def route_login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), d
 @app.get("/logout")
 def route_logout_and_remove_cookie():
     response = RedirectResponse(url="/")
-    response.delete_cookie("Authorization", domain="localtest.me")
+    response.delete_cookie("Authorization", domain=DOMAIN)
     return response
 
 
 @app.get("/login_basic")
 def login_basic(auth: BasicAuth = Depends(basic_auth), db: Session = Depends(get_db)):
-    print("Inside Login Basic")
     if not auth:
-        print("No Authentication")
         response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
         return response
 
@@ -100,19 +99,14 @@ def login_basic(auth: BasicAuth = Depends(basic_auth), db: Session = Depends(get
         decoded = base64.b64decode(auth).decode("ascii")  # type: ignore
         username, _, password = decoded.partition(":")
         user = crud.get_user(db, username=username)
-        print("Got User")
         if not user:
             raise HTTPException(status_code=400, detail="Incorrect email or password")
-        print("Creating Access Token")
         access_token = create_access_token(data={"sub": user.id}, key=KEY)
-        print("Created Adccess Token")
         token = jsonable_encoder(access_token)
         response = RedirectResponse(url="/docs")
-        print("Set Cookie")
         response.set_cookie(
-            "Authorization", value=f"Bearer {token}", domain="localhost.com", httponly=True, max_age=86400 * 7,
+            "Authorization", value=f"Bearer {token}", domain=DOMAIN, httponly=True, max_age=86400 * 7,
         )
-        print("Set Cookie Okay")
         return response
 
     except BaseException:
@@ -230,13 +224,3 @@ def get_link(
         return {"link": link.link}
 
     return RedirectResponse(url=link.link)
-
-
-# @app.get("/openapi.json")
-# def get_open_api_endpoint(user_id: int = Depends(get_current_user())):
-#     return JSONResponse(get_openapi(title="FastAPI", version="1", routes=app.routes))
-#
-#
-# @app.get("/docs")
-# def get_documentation(user_id: int = Depends(get_current_user)):
-#     return get_swagger_ui_html(openapi_url="/openapi.json", title="docs")
