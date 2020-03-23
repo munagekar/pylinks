@@ -1,11 +1,12 @@
-LOG-DIR:= .logs
-DATA-DIR:= data
+LOG_DIR:= .logs
+DATA_DIR:= data
 .PHONY: init lint test coverage openweb run-dev cleandb
+
 
 init:
 	git config core.hooksPath .hooks
-	mkdir $(LOG-DIR)
-	mkdir $(DATA-DIR)
+	mkdir $(LOG_DIR)
+	mkdir $(DATA_DIR)
 
 lint:
 	pipenv run black -l 120 pylinks
