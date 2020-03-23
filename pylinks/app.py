@@ -3,12 +3,14 @@ import logging
 import uuid
 from typing import Dict, Union
 
+import argon2  # type: ignore
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
 from pylinks import crud, schemas
+from pylinks.auth import OAuth2PasswordBearerCookie
 from pylinks.constants import UserRole
 from pylinks.database import SessionLocal, engine
 from pylinks.models import Base
@@ -19,6 +21,8 @@ logger.setLevel(logging.INFO)
 
 Base.metadata.create_all(bind=engine)
 
+ph = argon2.PasswordHasher()
+oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="/token")
 app = FastAPI()
 
 
@@ -123,7 +127,7 @@ def create_link(userlink: schemas.UserLinkCreate, db: Session = Depends(get_db))
     return HTMLResponse(status_code=status.HTTP_200_OK)
 
 
-@app.get("/ulink")
+@app.get("/ulink", responses={400: {"details": "Invalid User"}, 404: {"details:": "Link Doesn't Exist"}})
 def get_link(
     text: str = Query(..., max_length=25),
     username: str = Query(..., max_length=25),
