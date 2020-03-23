@@ -62,7 +62,6 @@ class InviteCreated(BaseModel):
 
 
 class UserLinkCreate(BaseModel):
-    username: str
     text: str
     link: HttpUrl
 

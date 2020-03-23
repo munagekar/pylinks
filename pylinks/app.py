@@ -49,6 +49,7 @@ def verify_password(plain_password, hashed_password):
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
+    print(f"Token :%s", token)
     credentials_exception = HTTPException(
         status_code=status.HTTP_403_FORBIDDEN, detail="Could not validate credentials"
     )
@@ -89,7 +90,9 @@ def route_logout_and_remove_cookie():
 
 @app.get("/login_basic")
 def login_basic(auth: BasicAuth = Depends(basic_auth), db: Session = Depends(get_db)):
+    print("Inside Login Basic")
     if not auth:
+        print("No Authentication")
         response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
         return response
 
@@ -97,25 +100,23 @@ def login_basic(auth: BasicAuth = Depends(basic_auth), db: Session = Depends(get
         decoded = base64.b64decode(auth).decode("ascii")  # type: ignore
         username, _, password = decoded.partition(":")
         user = crud.get_user(db, username=username)
+        print("Got User")
         if not user:
             raise HTTPException(status_code=400, detail="Incorrect email or password")
-
-        access_token = create_access_token(data={"sub": username}, key=KEY)
-
+        print("Creating Access Token")
+        access_token = create_access_token(data={"sub": user.id}, key=KEY)
+        print("Created Adccess Token")
         token = jsonable_encoder(access_token)
-
         response = RedirectResponse(url="/docs")
+        print("Set Cookie")
         response.set_cookie(
-            "Authorization",
-            value=f"Bearer {token}",
-            domain="localtest.me",
-            httponly=True,
-            max_age=86400 * 7,
-            expires=86400 * 7,
+            "Authorization", value=f"Bearer {token}", domain="localhost.com", httponly=True, max_age=86400 * 7,
         )
+        print("Set Cookie Okay")
         return response
 
     except BaseException:
+        logger.exception("Excpetion")
         response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
         return response
 
@@ -202,31 +203,25 @@ def accept_invite(id: uuid.UUID, username: str = Query(..., max_length=25), db: 
 
 
 @app.post("/ulink/", responses={400: {"details": "Invalid Username"}, 409: {"details": "Link Already Registered"}})
-def create_link(userlink: schemas.UserLinkCreate, db: Session = Depends(get_db)):
-    user = crud.get_user(db, userlink.username)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Username")
-
-    link = crud.get_user_link(db, text=userlink.text, user_id=user.id)
+def create_link(
+    userlink: schemas.UserLinkCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)
+):
+    link = crud.get_user_link(db, text=userlink.text, user_id=user_id)
     if link:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Link Already Exists")
 
-    crud.create_user_link(db, userlink.link, user_id=user.id, text=userlink.text)
+    crud.create_user_link(db, userlink.link, user_id=user_id, text=userlink.text)
     return HTMLResponse(status_code=status.HTTP_200_OK)
 
 
 @app.get("/ulink", responses={400: {"details": "Invalid User"}, 404: {"details:": "Link Doesn't Exist"}})
 def get_link(
     text: str = Query(..., max_length=25),
-    username: str = Query(..., max_length=25),
+    user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
     redirect: bool = True,
 ) -> Union[Dict[str, str], RedirectResponse]:
-    user = crud.get_user(db, username)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Username")
-
-    link = crud.get_user_link(db, text, user.id)
+    link = crud.get_user_link(db, text, user_id)
 
     if not link:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link Not found")
@@ -235,3 +230,13 @@ def get_link(
         return {"link": link.link}
 
     return RedirectResponse(url=link.link)
+
+
+# @app.get("/openapi.json")
+# def get_open_api_endpoint(user_id: int = Depends(get_current_user())):
+#     return JSONResponse(get_openapi(title="FastAPI", version="1", routes=app.routes))
+#
+#
+# @app.get("/docs")
+# def get_documentation(user_id: int = Depends(get_current_user)):
+#     return get_swagger_ui_html(openapi_url="/openapi.json", title="docs")

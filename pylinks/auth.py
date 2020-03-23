@@ -4,6 +4,7 @@ from typing import Optional
 import jwt
 from fastapi import HTTPException, status
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
+from fastapi.openapi.models import SecurityBase as SecurityBaseModel
 from fastapi.security import OAuth2
 from fastapi.security.base import SecurityBase
 from fastapi.security.utils import get_authorization_scheme_param
@@ -54,6 +55,7 @@ class OAuth2PasswordBearerCookie(OAuth2):
 class BasicAuth(SecurityBase):
     def __init__(self, scheme_name: str = None, auto_error: bool = True):
         self.scheme_name = scheme_name or self.__class__.__name__
+        self.model = SecurityBaseModel(type="http")  # type: ignore
         self.auto_error = auto_error
 
     def __call__(self, request: Request) -> Optional[str]:
