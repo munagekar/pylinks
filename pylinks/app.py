@@ -1,16 +1,20 @@
+import base64
 import datetime
 import logging
 import uuid
 from typing import Dict, Union
 
 import argon2  # type: ignore
+import jwt
 from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, Response
 
-from pylinks import crud, schemas
-from pylinks.auth import AuthException, OAuth2PasswordBearerCookie
+from pylinks import config, crud, schemas
+from pylinks.auth import BasicAuth, OAuth2PasswordBearerCookie, create_access_token
 from pylinks.constants import UserRole
 from pylinks.database import SessionLocal, engine
 from pylinks.models import Base
@@ -23,34 +27,9 @@ Base.metadata.create_all(bind=engine)
 
 ph = argon2.PasswordHasher()
 oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="/token")
+basic_auth = BasicAuth(auto_error=False)
 app = FastAPI()
-
-
-def verify_password(plain_password, hashed_password):
-    try:
-        ph.verify(plain_password, hashed_password)
-        return True
-    except argon2.exceptions.VerifyMismatchError:
-        return False
-
-
-def get_password_hash(password):
-    return ph.hash(password)
-
-
-def authenticate_user(db, username: str, password: str):
-    user = crud.get_user(db, username)
-    if not user:
-        raise AuthException("Invalid User")
-    if not verify_password(password, user.hashed_password):
-        return AuthException("Verification Failed")
-    return user
-
-
-@app.on_event("startup")
-def startup():
-    # TODO : Add Periodic Task To Delete Expired Magic Links
-    pass
+KEY = config.read_from_env().key
 
 
 def get_db():
@@ -61,6 +40,92 @@ def get_db():
         db.close()
 
 
+def verify_password(plain_password, hashed_password):
+    try:
+        ph.verify(plain_password, hashed_password)
+        return True
+    except argon2.exceptions.VerifyMismatchError:
+        return False
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN, detail="Could not validate credentials"
+    )
+    try:
+        payload = jwt.decode(token, KEY, algorithms=["HS256"])
+        user_id: int = payload.get("sub")  # type: ignore
+        if user_id is None:
+            raise credentials_exception
+    except jwt.PyJWTError:
+        raise credentials_exception
+    return user_id
+
+
+@app.post("/token", response_model=schemas.Token)
+def route_login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = crud.get_user(db, username=form_data.username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect username or password")
+
+    if not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect Username or password")
+
+    if ph.check_needs_rehash(user.password_hash):
+        user.password_hash = ph.hash(form_data.password)
+        logger.info("Rehash Password for user:%s", user.username)
+        db.commit()
+
+    access_token = create_access_token(data={"sub": user.username}, key=KEY)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/logout")
+def route_logout_and_remove_cookie():
+    response = RedirectResponse(url="/")
+    response.delete_cookie("Authorization", domain="localtest.me")
+    return response
+
+
+@app.get("/login_basic")
+def login_basic(auth: BasicAuth = Depends(basic_auth), db: Session = Depends(get_db)):
+    if not auth:
+        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
+        return response
+
+    try:
+        decoded = base64.b64decode(auth).decode("ascii")  # type: ignore
+        username, _, password = decoded.partition(":")
+        user = crud.get_user(db, username=username)
+        if not user:
+            raise HTTPException(status_code=400, detail="Incorrect email or password")
+
+        access_token = create_access_token(data={"sub": username}, key=KEY)
+
+        token = jsonable_encoder(access_token)
+
+        response = RedirectResponse(url="/docs")
+        response.set_cookie(
+            "Authorization",
+            value=f"Bearer {token}",
+            domain="localtest.me",
+            httponly=True,
+            max_age=86400 * 7,
+            expires=86400 * 7,
+        )
+        return response
+
+    except BaseException:
+        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
+        return response
+
+
+@app.on_event("startup")
+def startup():
+    # TODO : Add Periodic Task To Delete Expired Magic Links
+    pass
+
+
 @app.get("/")
 def read_root() -> str:
     return "Welcome to Pylinks"
@@ -69,11 +134,13 @@ def read_root() -> str:
 @app.post(
     "/user/", responses={400: {"detail": "Username Already Registered"}}, response_model=schemas.UserCreated,
 )
-def create_user(username: str = Query(..., max_length=25), db: Session = Depends(get_db)) -> schemas.UserCreated:
+def create_user(
+    username: str = Query(..., max_length=25), password: str = Query(..., max_length=25), db: Session = Depends(get_db)
+) -> schemas.UserCreated:
     user = crud.get_user(db, username)
     if user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
-    user = crud.create_user(db, username)
+    user = crud.create_user(db, username, ph.hash(password))
     return schemas.UserCreated(username=user.username, created=user.created)
 
 
