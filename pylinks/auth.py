@@ -1,11 +1,17 @@
+from datetime import datetime, timedelta
 from typing import Optional
 
+import jwt
 from fastapi import HTTPException, status
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.security import OAuth2
 from fastapi.security.base import SecurityBase
 from fastapi.security.utils import get_authorization_scheme_param
 from starlette.requests import Request
+
+
+class AuthException(Exception):
+    pass
 
 
 class OAuth2PasswordBearerCookie(OAuth2):
@@ -59,3 +65,11 @@ class BasicAuth(SecurityBase):
             else:
                 return None
         return param
+
+
+def create_access_token(*, data: dict, key: str):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=7)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, key, algorithm="HS256")
+    return encoded_jwt

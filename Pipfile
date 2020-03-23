@@ -23,6 +23,7 @@ argon2-cffi = "*"
 ujson = "*"
 starlette = "*"
 environ-config = "*"
+jwt = {extras = ["crypto"],version = "*"}
 
 [requires]
 python_version = "3.8"

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
 from pylinks import crud, schemas
-from pylinks.auth import OAuth2PasswordBearerCookie
+from pylinks.auth import AuthException, OAuth2PasswordBearerCookie
 from pylinks.constants import UserRole
 from pylinks.database import SessionLocal, engine
 from pylinks.models import Base
@@ -24,6 +24,27 @@ Base.metadata.create_all(bind=engine)
 ph = argon2.PasswordHasher()
 oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="/token")
 app = FastAPI()
+
+
+def verify_password(plain_password, hashed_password):
+    try:
+        ph.verify(plain_password, hashed_password)
+        return True
+    except argon2.exceptions.VerifyMismatchError:
+        return False
+
+
+def get_password_hash(password):
+    return ph.hash(password)
+
+
+def authenticate_user(db, username: str, password: str):
+    user = crud.get_user(db, username)
+    if not user:
+        raise AuthException("Invalid User")
+    if not verify_password(password, user.hashed_password):
+        return AuthException("Verification Failed")
+    return user
 
 
 @app.on_event("startup")
