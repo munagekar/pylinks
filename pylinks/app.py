@@ -130,8 +130,8 @@ def read_root() -> str:
     "/user/", responses={400: {"detail": "Username Already Registered"}}, response_model=schemas.UserCreated,
 )
 def create_user(user: schemas.UserBase, db: Session = Depends(get_db)) -> schemas.UserCreated:
-    user = crud.get_user(db, user.username)
-    if user:
+    user_in_db = crud.get_user(db, user.username)
+    if user_in_db:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
     user = crud.create_user(db, user.username, ph.hash(user.password))
     return schemas.UserCreated(username=user.username, created=user.created)
