@@ -15,6 +15,9 @@ class UserCreate(UserBase):
     password: constr(max_length=25)  # type: ignore
 
 
+Login = UserCreate  # Alias
+
+
 class UserCreated(UserBase):
     created: datetime = Field(default=datetime.utcnow())
 

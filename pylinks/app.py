@@ -64,6 +64,24 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
     return user_id
 
 
+@app.post("/jwt", response_model=schemas.Token)
+def create_jwt(auth: schemas.Login, db: Session = Depends(get_db)):
+    user = crud.get_user(db, username=auth.username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect username or password")
+
+    if not verify_password(auth.password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect Username or password")
+
+    if ph.check_needs_rehash(user.password_hash):
+        user.password_hash = ph.hash(user.password)
+        logger.info("Rehash Password for user:%s", user.username)
+        db.commit()
+
+    access_token = create_access_token(data={"sub": user.id}, key=KEY)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
 @app.post("/token", response_model=schemas.Token)
 def route_login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = crud.get_user(db, username=form_data.username)
@@ -78,7 +96,7 @@ def route_login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), d
         logger.info("Rehash Password for user:%s", user.username)
         db.commit()
 
-    access_token = create_access_token(data={"sub": user.username}, key=KEY)
+    access_token = create_access_token(data={"sub": user.id}, key=KEY)
     return {"access_token": access_token, "token_type": "bearer"}
 
 
