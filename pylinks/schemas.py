@@ -9,6 +9,9 @@ from pylinks.constants import UserRole
 
 class UserBase(BaseModel):
     username: constr(strip_whitespace=True, max_length=25)  # type: ignore
+
+
+class UserCreate(UserBase):
     password: constr(max_length=25)  # type: ignore
 
 
