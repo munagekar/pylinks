@@ -44,7 +44,7 @@ def get_db():
 
 def verify_password(plain_password, hashed_password):
     try:
-        ph.verify(plain_password, hashed_password)
+        ph.verify(hashed_password, plain_password)
         return True
     except argon2.exceptions.VerifyMismatchError:
         return False
@@ -69,7 +69,7 @@ def create_jwt(auth: schemas.Login, db: Session = Depends(get_db)):
     user = crud.get_user(db, username=auth.username)
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect username or password")
-    print("Print Hash:", user.password_hash)
+
     if not verify_password(auth.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect Username or password")
 
@@ -152,7 +152,6 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)) -> sche
     if user_in_db:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
     user = crud.create_user(db, user.username, ph.hash(user.password))
-    print("Hashed Password:", user.password_hash)
     return schemas.UserCreated(username=user.username, created=user.created)
 
 
