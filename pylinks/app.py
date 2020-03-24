@@ -64,8 +64,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
     return user_id
 
 
-@app.post("/jwt", response_model=schemas.Token)
-def create_jwt(auth: schemas.Login, db: Session = Depends(get_db)):
+@app.post("/jwt")
+def create_jwt(auth: schemas.Login, db: Session = Depends(get_db)) -> str:
     user = crud.get_user(db, username=auth.username)
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect username or password")
@@ -79,7 +79,9 @@ def create_jwt(auth: schemas.Login, db: Session = Depends(get_db)):
         db.commit()
 
     access_token = create_access_token(data={"sub": user.id}, key=KEY)
-    return {"access_token": access_token, "token_type": "bearer"}
+    token = jsonable_encoder(access_token)
+
+    return f"Bearer {token}"
 
 
 @app.post("/token", response_model=schemas.Token)
@@ -97,8 +99,7 @@ def route_login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), d
         db.commit()
 
     access_token = create_access_token(data={"sub": user.id}, key=KEY)
-    token = jsonable_encoder(access_token)
-    return f"Bearer {token}"
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.get("/logout")
