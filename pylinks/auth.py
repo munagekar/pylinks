@@ -27,8 +27,9 @@ class OAuth2PasswordBearerCookie(OAuth2):
     def __call__(self, request: Request) -> Optional[str]:  # type: ignore
         header_authorization: str = request.headers.get("Authorization")
         cookie_authorization: str = request.cookies.get("Authorization")  # type: ignore
-
+        print(header_authorization)
         header_scheme, header_param = get_authorization_scheme_param(header_authorization)
+        print(header_scheme, header_param)
         cookie_scheme, cookie_param = get_authorization_scheme_param(cookie_authorization)
 
         if header_scheme.lower() == "bearer":
