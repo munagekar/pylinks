@@ -97,7 +97,8 @@ def route_login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), d
         db.commit()
 
     access_token = create_access_token(data={"sub": user.id}, key=KEY)
-    return {"access_token": access_token, "token_type": "bearer"}
+    token = jsonable_encoder(access_token)
+    return f"Bearer {token}"
 
 
 @app.get("/logout")
