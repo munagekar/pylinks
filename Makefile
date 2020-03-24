@@ -1,5 +1,6 @@
 LOG_DIR:= .logs
 DATA_DIR:= data
+DEV_HTTPS_PORT:= 443
 .PHONY: init lint test coverage openweb run-dev cleandb
 
 
@@ -20,7 +21,7 @@ coverage:
 	pipenv run python -m pytest --cov=pylinks tests --cov-report term-missing
 
 run-dev:
-	@pipenv run uvicorn pylinks.app:app --reload
+	pipenv run uvicorn pylinks.app:app --reload --port $(DEV_HTTPS_PORT) --ssl-keyfile=$(DATA_DIR)/privkey.pem --ssl-certfile=$(DATA_DIR)/cert.pem
 
 openweb:
 	open http:://localhost:8000
