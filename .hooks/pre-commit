@@ -49,6 +49,7 @@ else
   echo "${GREEN}Success MyPy${NC}"
 fi
 
+
 finalstatus=$((black_not_okay|isort_not_okay|flake_not_okay|mypy_not_okay))
 if [[ "$finalstatus" -gt 0 ]]
 then

@@ -6,7 +6,7 @@ from typing import Dict, Union
 
 import argon2  # type: ignore
 import jwt
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -130,7 +130,7 @@ def read_root() -> str:
     "/user/", responses={400: {"detail": "Username Already Registered"}}, response_model=schemas.UserCreated,
 )
 def create_user(
-    username: str = Query(..., max_length=25), password: str = Query(..., max_length=25), db: Session = Depends(get_db)
+    username: str = Body(..., max_length=25), password: str = Body(..., max_length=25), db: Session = Depends(get_db)
 ) -> schemas.UserCreated:
     user = crud.get_user(db, username)
     if user:
