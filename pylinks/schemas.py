@@ -66,6 +66,7 @@ class TeamRole(BaseModel):
 class InviteCreated(BaseModel):
     id: uuid.UUID
     expiry: datetime
+    link: str
 
 
 class UserLinkCreate(BaseModel):
