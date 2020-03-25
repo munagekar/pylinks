@@ -11,7 +11,7 @@ from fastapi.security.utils import get_authorization_scheme_param
 from starlette.requests import Request
 
 
-class AuthException(Exception):
+class RequiresLoginException(Exception):
     pass
 
 
@@ -44,7 +44,7 @@ class OAuth2PasswordBearerCookie(OAuth2):
             authorization = False
 
         if not authorization or scheme.lower() != "bearer":
-            return None
+            raise RequiresLoginException("No Login Details")
         return param
 
 
