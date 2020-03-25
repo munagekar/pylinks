@@ -61,6 +61,11 @@ def create_team_role(db: Session, team_id: int, user_id: int, role_id: int):
     logger.info("Created Team Role, Team_id:%s, User_id:%s, Role:%s", team_id, user_id, role_id)
 
 
+def upgrade_team_role(db: Session, team_role: models.TeamRole, role_id: int):
+    team_role.role_id = max(team_role.role_id, role_id)
+    db.commit()
+
+
 def delete_team_role(db: Session, team_id: int, user_id: int, role: UserRole) -> int:
     """
     Deletes a Team Role
@@ -117,6 +122,11 @@ def get_invites(db: Session, team: schemas.Team, role: Optional[UserRole] = None
 def get_invite_by_id(db: Session, id: uuid.UUID) -> Optional[models.TeamInvite]:
     logger.info("Fetch for TeamInvite:%s", id)
     return db.query(models.TeamInvite).filter(models.TeamInvite.id == id).first()
+
+
+def delete_invite(db: Session, invite: models.TeamInvite) -> None:
+    db.delete(invite)
+    db.commit()
 
 
 def create_user_link(db: Session, link: str, user_id: int, text: str):

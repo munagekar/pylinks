@@ -215,23 +215,25 @@ def create_invite(
 
 
 @app.get("/invite/", responses={400: {"details": "Invalid Teamname"}, 404: {"details": "Invalid Link"}})
-def accept_invite(id: uuid.UUID, username: str = Query(..., max_length=25), db: Session = Depends(get_db)):
-    user = crud.get_user_by_name(db, username)
+def accept_invite(link_id: uuid.UUID, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    user = crud.get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Username")
 
-    team_invite = crud.get_invite_by_id(db, id)
-    if not team_invite or team_invite.expiry <= datetime.datetime.utcnow():
+    team_invite = crud.get_invite_by_id(db, link_id)
+    if not team_invite:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Link")
 
-    user_team_role = crud.get_team_roles(db, team_id=team_invite.team_id, user_id=user.id)
+    if team_invite.expiry <= datetime.datetime.utcnow():
+        crud.delete_invite(db, team_invite)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Link")
 
-    if not user_team_role:
+    user_team_roles = crud.get_team_roles(db, team_id=team_invite.team_id, user_id=user.id)
+
+    if not user_team_roles:
         crud.create_team_role(db, team_id=team_invite.team_id, user_id=user.id, role_id=team_invite.role_id)
     else:
-        user_team_role = user_team_role[0]
-        user_team_role.role_id = max(team_invite.role_id, user_team_role.role_id)
-        db.commit()
+        crud.upgrade_team_role(db, user_team_roles[0], team_invite.role_id)
 
     return HTMLResponse(status_code=status.HTTP_200_OK)
 
