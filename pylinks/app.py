@@ -54,6 +54,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
     credentials_exception = HTTPException(
         status_code=status.HTTP_403_FORBIDDEN, detail="Could not validate credentials"
     )
+    if not token:
+        RedirectResponse("/login_basic")
     try:
         payload = jwt.decode(token, KEY, algorithms=["HS256"])
         user_id: int = payload.get("sub")  # type: ignore

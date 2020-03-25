@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import Optional
 
 import jwt
 from fastapi import HTTPException, status
@@ -9,7 +9,6 @@ from fastapi.security import OAuth2
 from fastapi.security.base import SecurityBase
 from fastapi.security.utils import get_authorization_scheme_param
 from starlette.requests import Request
-from starlette.responses import RedirectResponse
 
 
 class AuthException(Exception):
@@ -25,12 +24,10 @@ class OAuth2PasswordBearerCookie(OAuth2):
         flows = OAuthFlowsModel(password={"tokenUrl": tokenUrl, "scopes": scopes})  # type: ignore
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
-    def __call__(self, request: Request) -> Union[str, RedirectResponse, None]:  # type: ignore
+    def __call__(self, request: Request) -> Optional[str]:  # type: ignore
         header_authorization: str = request.headers.get("Authorization")
         cookie_authorization: str = request.cookies.get("Authorization")  # type: ignore
-        print(header_authorization)
         header_scheme, header_param = get_authorization_scheme_param(header_authorization)
-        print(header_scheme, header_param)
         cookie_scheme, cookie_param = get_authorization_scheme_param(cookie_authorization)
 
         if header_scheme.lower() == "bearer":
@@ -47,10 +44,7 @@ class OAuth2PasswordBearerCookie(OAuth2):
             authorization = False
 
         if not authorization or scheme.lower() != "bearer":
-            if self.auto_error:
-                return RedirectResponse(url="/basic_login")
-            else:
-                return None
+            return None
         return param
 
 
