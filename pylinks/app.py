@@ -253,16 +253,16 @@ def create_link(link: schemas.LinkCreate, db: Session = Depends(get_db), user_id
         if user_role.role_id == USER_ROLE_MAP[UserRole.READER]:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Insufficient Permission")
 
-        link = crud.get_team_link(db, text=link.text, team_id=team.id)
-        if link:
+        link_in_db = crud.get_team_link(db, text=link.text, team_id=team.id)
+        if link_in_db:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Link Already Exists")
 
         crud.create_team_link(db, link.link, team.id, text=link.text)
         return HTMLResponse(status_code=status.HTTP_200_OK)
 
     else:
-        link = crud.get_user_link(db, text=link.text, user_id=user_id)
-        if link:
+        link_in_db = crud.get_user_link(db, text=link.text, user_id=user_id)
+        if link_in_db:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Link Already Exists")
 
         crud.create_user_link(db, link.link, user_id=user_id, text=link.text)
