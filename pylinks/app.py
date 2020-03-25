@@ -16,7 +16,7 @@ from starlette.responses import RedirectResponse, Response
 
 from pylinks import config, crud, schemas
 from pylinks.auth import BasicAuth, OAuth2PasswordBearerCookie, RequiresLoginException, create_access_token
-from pylinks.constants import UserRole
+from pylinks.constants import USER_ROLE_MAP, UserRole
 from pylinks.database import SessionLocal, engine
 from pylinks.models import Base
 
@@ -239,15 +239,34 @@ def accept_invite(link_id: uuid.UUID, db: Session = Depends(get_db), user_id: in
 
 
 @app.post("/link/", responses={400: {"details": "Invalid Username"}, 409: {"details": "Link Already Registered"}})
-def create_link(
-    userlink: schemas.UserLinkCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)
-):
-    link = crud.get_user_link(db, text=userlink.text, user_id=user_id)
-    if link:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Link Already Exists")
+def create_link(link: schemas.LinkCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    if link.team:
+        team = crud.get_team(db, teamname=link.team)
+        if not team:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Team Name")
+        user_role = crud.get_team_roles(db, team.id, user_id)
 
-    crud.create_user_link(db, userlink.link, user_id=user_id, text=userlink.text)
-    return HTMLResponse(status_code=status.HTTP_200_OK)
+        if not user_role:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Insufficient Permission")
+
+        user_role = user_role[0]
+        if user_role.role_id == USER_ROLE_MAP[UserRole.READER]:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Insufficient Permission")
+
+        link = crud.get_team_link(db, text=link.text, team_id=team.id)
+        if link:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Link Already Exists")
+
+        crud.create_team_link(db, link.link, team.id, text=link.text)
+        return HTMLResponse(status_code=status.HTTP_200_OK)
+
+    else:
+        link = crud.get_user_link(db, text=link.text, user_id=user_id)
+        if link:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Link Already Exists")
+
+        crud.create_user_link(db, link.link, user_id=user_id, text=link.text)
+        return HTMLResponse(status_code=status.HTTP_200_OK)
 
 
 @app.get("/link", responses={400: {"details": "Invalid User"}, 404: {"details:": "Link Doesn't Exist"}})

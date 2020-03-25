@@ -69,9 +69,10 @@ class InviteCreated(BaseModel):
     link: str
 
 
-class UserLinkCreate(BaseModel):
+class LinkCreate(BaseModel):
     text: str
     link: HttpUrl
+    team: Optional[str] = None
 
 
 class Token(BaseModel):

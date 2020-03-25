@@ -61,6 +61,7 @@ class Team(Base):
 
     roles = relationship("TeamRole", cascade="all,delete", passive_deletes=True)  # type: ignore
     invites = relationship("TeamInvite", cascade="all,delete", passive_deletes=True)  # type: ignore
+    links = relationship("TeamLink", cascade="all,delete", passive_deletes=True)  # type:ignore
 
 
 class UserLink(Base):
@@ -73,6 +74,18 @@ class UserLink(Base):
     link = Column(String())
 
     user = relationship("User")  # type: ignore
+
+
+class TeamLink(Base):
+    __tablename__ = "team_links"
+    __table_args__ = (UniqueConstraint("text", "team_id"),)
+
+    row_id = Column(Integer, primary_key=True)
+    text = Column(String(25), index=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), index=True)
+    link = Column(String())
+
+    team = relationship("Team")  # type: ignore
 
 
 class TeamRole(Base):

@@ -143,3 +143,18 @@ def get_user_link(db: Session, text: str, user_id: int) -> models.UserLink:
         .filter(models.UserLink.user_id == user_id)
         .first()
     )
+
+
+def create_team_link(db: Session, link: str, team_id: int, text: str):
+    team_link = models.TeamLink(link=link, team_id=team_id, text=text)
+    db.add(team_link)
+    db.commit()
+
+
+def get_team_link(db: Session, text: str, team_id: int) -> models.TeamLink:
+    return (
+        db.query(models.TeamLink)
+        .filter(models.TeamLink.text == text)
+        .filter(models.TeamLink.team_id == team_id)
+        .first()
+    )
