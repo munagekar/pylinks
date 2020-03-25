@@ -62,8 +62,9 @@ def create_team_role(db: Session, team_id: int, user_id: int, role_id: int):
 
 
 def upgrade_team_role(db: Session, team_role: models.TeamRole, role_id: int):
-    team_role.role_id = max(team_role.role_id, role_id)
-    db.commit()
+    if team_role.role_id < role_id:
+        team_role.role_id = role_id
+        db.commit()
 
 
 def delete_team_role(db: Session, team_id: int, user_id: int, role: UserRole) -> int:
