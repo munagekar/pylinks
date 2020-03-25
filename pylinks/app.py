@@ -204,7 +204,13 @@ def create_invite(
     if not user_role:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Enough Permission")
 
-    id, expiry = crud.create_invite(db, team, role)
+    team_invites = crud.get_invites(db, team, role=role)
+    if not team_invites:
+        id, expiry = crud.create_invite(db, team, role)
+    else:
+        id = team_invites[0].id
+        expiry = team_invites[0].expiry
+
     return {"id": id, "expiry": expiry, "link": f"https://{DOMAIN}/invite/{id}"}
 
 
