@@ -72,7 +72,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
 
 @app.post("/jwt")
 def create_jwt(auth: schemas.Login, db: Session = Depends(get_db)) -> str:
-    user = crud.get_user(db, username=auth.username)
+    user = crud.get_user_by_name(db, username=auth.username)
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect username or password")
 
@@ -92,7 +92,7 @@ def create_jwt(auth: schemas.Login, db: Session = Depends(get_db)) -> str:
 
 @app.post("/token", response_model=schemas.Token)
 def route_login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = crud.get_user(db, username=form_data.username)
+    user = crud.get_user_by_name(db, username=form_data.username)
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect username or password")
 
@@ -111,7 +111,7 @@ def route_login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), d
 @app.get("/logout")
 def route_logout_and_remove_cookie():
     response = RedirectResponse(url="/")
-    response.delete_cookie("Authorization", domain=DOMAIN)
+    response.delete_cookie("Authorization", domain=DOMAIN, path="/")
     return response
 
 
@@ -124,14 +124,14 @@ def login_basic(auth: BasicAuth = Depends(basic_auth), db: Session = Depends(get
     try:
         decoded = base64.b64decode(auth).decode("ascii")  # type: ignore
         username, _, password = decoded.partition(":")
-        user = crud.get_user(db, username=username)
+        user = crud.get_user_by_name(db, username=username)
         if not user:
             raise HTTPException(status_code=400, detail="Incorrect email or password")
         access_token = create_access_token(data={"sub": user.id}, key=KEY)
         token = jsonable_encoder(access_token)
         response = RedirectResponse(url="/")
         response.set_cookie(
-            "Authorization", value=f"Bearer {token}", domain=DOMAIN, httponly=True, max_age=86400 * 7,
+            "Authorization", value=f"Bearer {token}", domain=DOMAIN, httponly=True, max_age=86400 * 7, path="/"
         )
         return response
 
@@ -156,7 +156,7 @@ def read_root() -> str:
     "/user/", responses={400: {"detail": "Username Already Registered"}}, response_model=schemas.UserCreated,
 )
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)) -> schemas.UserCreated:
-    user_in_db = crud.get_user(db, user.username)
+    user_in_db = crud.get_user_by_name(db, user.username)
     if user_in_db:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
     user = crud.create_user(db, user.username, ph.hash(user.password))
@@ -169,11 +169,14 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)) -> sche
     response_model=schemas.TeamCreated,
 )
 def create_team(
-    *, teamname: str = Query(..., max_length=25), admin: str = Query(..., max_length=25), db: Session = Depends(get_db)
+    *,
+    teamname: str = Query(..., max_length=25),
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> schemas.TeamCreated:
-    admin_user = crud.get_user(db, admin)
+    admin_user = crud.get_user_by_id(db, user_id)
     if not admin_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Admin")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User")
 
     team = crud.get_team(db, teamname)
     if team:
@@ -200,7 +203,7 @@ def create_invite(
 
 @app.get("/invite/", responses={400: {"details": "Invalid Teamname"}, 404: {"details": "Invalid Link"}})
 def accept_invite(id: uuid.UUID, username: str = Query(..., max_length=25), db: Session = Depends(get_db)):
-    user = crud.get_user(db, username)
+    user = crud.get_user_by_name(db, username)
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Username")
 

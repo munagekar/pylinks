@@ -10,9 +10,13 @@ from pylinks.constants import USER_ROLE_MAP, UserRole
 logger = logging.getLogger(__name__)
 
 
-def get_user(db: Session, username: str) -> models.User:
+def get_user_by_name(db: Session, username: str) -> models.User:
     logger.info("Fetch User=%s", username)
     return db.query(models.User).filter(models.User.username == username).first()
+
+
+def get_user_by_id(db: Session, user_id: int) -> models.User:
+    return db.query(models.User).filter(models.User.id == user_id).first()
 
 
 def create_user(db: Session, username: str, password_hash: str) -> models.User:
