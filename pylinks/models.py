@@ -59,7 +59,7 @@ class Team(Base):
     teamname = Column(String(25), unique=True, index=True, nullable=False)
     created = Column(DATETIME, nullable=False, default=datetime.datetime.utcnow)
 
-    users = relationship("TeamRole", cascade="all,delete", passive_deletes=True)  # type: ignore
+    roles = relationship("TeamRole", cascade="all,delete", passive_deletes=True)  # type: ignore
     invites = relationship("TeamInvite", cascade="all,delete", passive_deletes=True)  # type: ignore
 
 

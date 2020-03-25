@@ -191,14 +191,21 @@ def create_team(
     "/invite/", responses={400: {"details": "Invalid Teamname"}}, response_model=schemas.InviteCreated,
 )
 def create_invite(
-    teamname: str = Query(..., max_length=25), role: UserRole = UserRole.READER, db: Session = Depends(get_db)
+    teamname: str = Query(..., max_length=25),
+    role: UserRole = UserRole.READER,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
 ):
     team = crud.get_team(db, teamname)
     if not team:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Teamname")
 
+    user_role = crud.get_team_roles(db, team.id, user_id, role=UserRole.ADMIN)
+    if not user_role:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Enough Permission")
+
     id, expiry = crud.create_invite(db, team, role)
-    return {"id": id, "expiry": expiry}
+    return {"id": id, "expiry": expiry, "link": f"https://{DOMAIN}/invite/{id}"}
 
 
 @app.get("/invite/", responses={400: {"details": "Invalid Teamname"}, 404: {"details": "Invalid Link"}})
