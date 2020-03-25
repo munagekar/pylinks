@@ -238,7 +238,7 @@ def accept_invite(link_id: uuid.UUID, db: Session = Depends(get_db), user_id: in
     return HTMLResponse(status_code=status.HTTP_200_OK)
 
 
-@app.post("/ulink/", responses={400: {"details": "Invalid Username"}, 409: {"details": "Link Already Registered"}})
+@app.post("/link/", responses={400: {"details": "Invalid Username"}, 409: {"details": "Link Already Registered"}})
 def create_link(
     userlink: schemas.UserLinkCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)
 ):
@@ -250,7 +250,7 @@ def create_link(
     return HTMLResponse(status_code=status.HTTP_200_OK)
 
 
-@app.get("/ulink", responses={400: {"details": "Invalid User"}, 404: {"details:": "Link Doesn't Exist"}})
+@app.get("/link", responses={400: {"details": "Invalid User"}, 404: {"details:": "Link Doesn't Exist"}})
 def get_link(
     text: str = Query(..., max_length=25),
     user_id: int = Depends(get_current_user),
