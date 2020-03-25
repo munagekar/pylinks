@@ -123,7 +123,7 @@ def login_basic(auth: BasicAuth = Depends(basic_auth), db: Session = Depends(get
             raise HTTPException(status_code=400, detail="Incorrect email or password")
         access_token = create_access_token(data={"sub": user.id}, key=KEY)
         token = jsonable_encoder(access_token)
-        response = RedirectResponse(url="/docs")
+        response = RedirectResponse(url="/")
         response.set_cookie(
             "Authorization", value=f"Bearer {token}", domain=DOMAIN, httponly=True, max_age=86400 * 7,
         )
