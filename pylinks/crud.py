@@ -103,6 +103,10 @@ def get_team_roles(
     return query.all()
 
 
+def get_teams_by_ids(db: Session, teams_ids: List[int]) -> List[models.Team]:
+    return db.query(models.Team).filter(models.Team.id.in_(teams_ids)).all()
+
+
 def create_invite(db: Session, team: schemas.Team, role: UserRole):
     role_id = USER_ROLE_MAP[role]
     invite = models.TeamInvite(team_id=team.id, role_id=role_id)
@@ -158,10 +162,10 @@ def create_team_link(db: Session, link: str, team_id: int, text: str):
 
 
 def append_to_lro(db: Session, user: models.User, team_id: int):
-    if user.lro is None:
-        user.lro = str(team_id)
+    if user.mro is None:
+        user.mro = str(team_id)
     else:
-        user.lro = f"{user.lro},{team_id}"
+        user.mro = f"{user.mro},{team_id}"
     db.commit()
 
 

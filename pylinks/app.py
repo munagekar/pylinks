@@ -296,3 +296,16 @@ def get_link(
         return {"link": link.link}
 
     return RedirectResponse(url=link.link)
+
+
+@app.get("/lro")
+def get_lro(user_id: int = Depends(get_current_user), db: Session = Depends(get_db)) -> Union[List[schemas.TeamBase]]:
+    user = crud.get_user_by_id(db, user_id)
+    mro = user.mro
+    if mro is None:
+        return []
+
+    team_ids = list(map(int, mro.split(",")))
+    teams = crud.get_teams_by_ids(db, team_ids)
+
+    return [schemas.TeamBase(teamname=team.teamname) for team in teams]
