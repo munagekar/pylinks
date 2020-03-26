@@ -46,7 +46,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(25), unique=True, index=True, nullable=False)
     created = Column(DATETIME, nullable=False, default=datetime.datetime.utcnow)
-    password_hash = Column(String())
+    password_hash = Column(String(), nullable=False)
+    lro = Column(String(), nullable=True)  # Link Resolution Order
 
     team_roles = relationship("TeamRole", cascade="all, delete", passive_deletes=True)  # type: ignore
     links = relationship("UserLink", cascade="all,delete", passive_deletes=True)  # type:ignore

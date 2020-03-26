@@ -33,7 +33,7 @@ def get_team(db: Session, teamname: str) -> models.Team:
     return db.query(models.Team).filter(models.Team.teamname == teamname).first()
 
 
-def create_team(db: Session, teamname: str, admin: schemas.User) -> models.Team:
+def create_team(db: Session, teamname: str, admin: models.User) -> models.Team:
     team = models.Team(teamname=teamname)
     try:
         db.add(team)
@@ -42,7 +42,7 @@ def create_team(db: Session, teamname: str, admin: schemas.User) -> models.Team:
         team_role = models.TeamRole(team_id=team.id, user_id=admin.id, role_id=USER_ROLE_MAP[UserRole.ADMIN])
         db.add(team_role)
         logger.info("Created Admin Role: team_name=%s, user=%s", team.teamname, admin.username)
-        db.commit()
+        append_to_lro(db, user=admin, team_id=team.id)
 
     except BaseException:
         logger.exception("Transaction Commit Failed")
@@ -54,11 +54,12 @@ def create_team(db: Session, teamname: str, admin: schemas.User) -> models.Team:
     return team
 
 
-def create_team_role(db: Session, team_id: int, user_id: int, role_id: int):
+def create_team_role(db: Session, team_id: int, user_id: int, role_id: int, commit: bool = True):
     team_role = models.TeamRole(team_id=team_id, user_id=user_id, role_id=role_id)
     db.add(team_role)
-    db.commit()
-    logger.info("Created Team Role, Team_id:%s, User_id:%s, Role:%s", team_id, user_id, role_id)
+    if commit:
+        logger.info("Created Team Role, Team_id:%s, User_id:%s, Role:%s", team_id, user_id, role_id)
+        db.commit()
 
 
 def upgrade_team_role(db: Session, team_role: models.TeamRole, role_id: int):
@@ -111,6 +112,11 @@ def create_invite(db: Session, team: schemas.Team, role: UserRole):
     return invite.id, invite.expiry
 
 
+def accept_invite(db: Session, team_invite: models.TeamInvite, user: models.User):
+    create_team_role(db, team_id=team_invite.team_id, user_id=user.id, role_id=team_invite.role_id, commit=False)
+    append_to_lro(db, user, team_invite.team_id)
+
+
 def get_invites(db: Session, team: schemas.Team, role: Optional[UserRole] = None) -> List[models.TeamInvite]:
     query = db.query(models.TeamInvite).filter(models.TeamInvite.team_id == team.id)
     logger.info("Fetching Invite For Team_id:%s, role:%s", team.id, role)
@@ -148,6 +154,14 @@ def get_user_link(db: Session, text: str, user_id: int) -> models.UserLink:
 def create_team_link(db: Session, link: str, team_id: int, text: str):
     team_link = models.TeamLink(link=link, team_id=team_id, text=text)
     db.add(team_link)
+    db.commit()
+
+
+def append_to_lro(db: Session, user: models.User, team_id: int):
+    if user.lro is None:
+        user.lro = str(team_id)
+    else:
+        user.lro = f"{user.lro},{team_id}"
     db.commit()
 
 

@@ -242,7 +242,7 @@ def accept_invite(link_id: uuid.UUID, db: Session = Depends(get_db), user_id: in
     user_team_roles = crud.get_team_roles(db, team_id=team_invite.team_id, user_id=user.id)
 
     if not user_team_roles:
-        crud.create_team_role(db, team_id=team_invite.team_id, user_id=user.id, role_id=team_invite.role_id)
+        crud.accept_invite(db, team_invite=team_invite, user=user)
     else:
         crud.upgrade_team_role(db, user_team_roles[0], team_invite.role_id)
 
