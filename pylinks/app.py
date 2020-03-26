@@ -324,6 +324,7 @@ def set_lro(lro: schemas.LROUpdate, user_id: int = Depends(get_current_user), db
         return HTMLResponse(status_code=status.HTTP_200_OK)
 
     teams = crud.get_teams_by_names(db, lro.teams)
+    teams_ids_dict = {team.teamname: team.id for team in teams}
 
     if len(teams) < len(lro.teams):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Teamname")
@@ -337,6 +338,6 @@ def set_lro(lro: schemas.LROUpdate, user_id: int = Depends(get_current_user), db
     for role in user_roles:
         print(role)
 
-    lro_str = ",".join(map(str, team_ids))
+    lro_str = ",".join([str(teams_ids_dict[teamname]) for teamname in lro.teams])
     crud.set_lro(db, user, lro_str)
     return HTMLResponse(status_code=status.HTTP_200_OK)
