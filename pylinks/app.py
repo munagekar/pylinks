@@ -2,7 +2,7 @@ import base64
 import datetime
 import logging
 import uuid
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 import argon2  # type: ignore
 import jwt
@@ -188,13 +188,14 @@ def create_team(
 
 
 @app.get(
-    "/team/", response_model=schemas.TeamBase,
+    "/team/", response_model=List[schemas.TeamBase],
 )
 def list_teams(
     user_id: int = Depends(get_current_user), db: Session = Depends(get_db),
 ):
     roles = crud.get_team_roles(db, user_id=user_id)
-    return [role.team for role in roles]
+    teams = [role.team for role in roles]
+    return [schemas.TeamBase(teamname=team.teamname) for team in teams]
 
 
 @app.post(
