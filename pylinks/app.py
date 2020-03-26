@@ -290,7 +290,25 @@ def get_link(
     link = crud.get_user_link(db, text, user_id)
 
     if not link:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link Not found")
+        # Need to Check all the teams in the user LRO
+        user = crud.get_user_by_id(db, user_id)
+        lro = user.lro
+
+        if not lro:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
+
+        team_ids = list(map(int, lro.split(",")))
+
+        team_links = crud.get_team_links(db, text, team_ids)
+        if not team_links:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Link not found")
+
+        team_link_map = {tl.team_id: tl for tl in team_links}
+
+        for id in team_ids:
+            link = team_link_map.get(id)  # type: ignore
+            if link:
+                break
 
     if not redirect:
         return {"link": link.link}

@@ -173,6 +173,15 @@ def create_team_link(db: Session, link: str, team_id: int, text: str):
     db.commit()
 
 
+def get_team_links(db: Session, text: str, team_ids: List[int]) -> List[models.TeamLink]:
+    return (
+        db.query(models.TeamLink)
+        .filter(models.TeamLink.team_id.in_(team_ids))
+        .filter(models.TeamLink.text == text)
+        .all()
+    )
+
+
 def append_to_lro(db: Session, user: models.User, team_id: int):
     if user.lro is None:
         user.lro = str(team_id)
