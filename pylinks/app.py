@@ -178,7 +178,7 @@ def create_team(
     if not admin_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User")
 
-    team = crud.get_team(db, teamname)
+    team = crud.get_team_by_name(db, teamname)
     if team:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Teamname already registered")
 
@@ -207,7 +207,7 @@ def create_invite(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user),
 ):
-    team = crud.get_team(db, teamname)
+    team = crud.get_team_by_name(db, teamname)
     if not team:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Teamname")
 
@@ -252,7 +252,7 @@ def accept_invite(link_id: uuid.UUID, db: Session = Depends(get_db), user_id: in
 @app.post("/link/", responses={400: {"details": "Invalid Username"}, 409: {"details": "Link Already Registered"}})
 def create_link(link: schemas.LinkCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
     if link.team:
-        team = crud.get_team(db, teamname=link.team)
+        team = crud.get_team_by_name(db, teamname=link.team)
         if not team:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Team Name")
         user_role = crud.get_team_roles(db, team.id, user_id)
@@ -301,7 +301,7 @@ def get_link(
 @app.get("/lro")
 def get_lro(user_id: int = Depends(get_current_user), db: Session = Depends(get_db)) -> Union[List[schemas.TeamBase]]:
     user = crud.get_user_by_id(db, user_id)
-    mro = user.mro
+    mro = user.lro
     if mro is None:
         return []
 
@@ -309,3 +309,29 @@ def get_lro(user_id: int = Depends(get_current_user), db: Session = Depends(get_
     teams = crud.get_teams_by_ids(db, team_ids)
 
     return [schemas.TeamBase(teamname=team.teamname) for team in teams]
+
+
+@app.post("/lro")
+def set_lro(lro: schemas.LROUpdate, user_id: int = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User Record Not Found")
+
+    if not lro.teams:
+        crud.set_lro(db, user, lro=None)
+        return HTMLResponse(status_code=status.HTTP_200_OK)
+
+    teams = crud.get_teams_by_names(db, lro.teams)
+
+    if None in teams:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Teamname")
+
+    team_ids = [team.id for team in teams]
+    user_roles = crud.get_user_team_roles(db, user.id, team_ids=team_ids)
+
+    if None in user_roles:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Insufficient Privilege")
+
+    lro_str = ",".join(map(str, team_ids))
+    crud.set_lro(db, user, lro_str)
+    return HTMLResponse(status_code=status.HTTP_200_OK)

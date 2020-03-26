@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from sqlalchemy.orm import Session
 
@@ -28,9 +28,13 @@ def create_user(db: Session, username: str, password_hash: str) -> models.User:
     return user
 
 
-def get_team(db: Session, teamname: str) -> models.Team:
+def get_team_by_name(db: Session, teamname: str) -> models.Team:
     logger.info("Fetch Team=%s", teamname)
     return db.query(models.Team).filter(models.Team.teamname == teamname).first()
+
+
+def get_teams_by_names(db: Session, teamnames: List[str]) -> List[models.Team]:
+    return db.query(models.Team).filter(models.Team.teamname.in_(teamnames)).all()
 
 
 def create_team(db: Session, teamname: str, admin: models.User) -> models.Team:
@@ -103,6 +107,14 @@ def get_team_roles(
     return query.all()
 
 
+def get_user_team_roles(db: Session, user_id: int, team_ids: Optional[List[int]]):
+    query = db.query(models.TeamRole).filter(models.TeamRole.user_id == user_id)
+    if team_ids:
+        query = query.filter(models.TeamRole.team_id.in_(team_ids))
+
+    return query.all()
+
+
 def get_teams_by_ids(db: Session, teams_ids: List[int]) -> List[models.Team]:
     return db.query(models.Team).filter(models.Team.id.in_(teams_ids)).all()
 
@@ -162,10 +174,15 @@ def create_team_link(db: Session, link: str, team_id: int, text: str):
 
 
 def append_to_lro(db: Session, user: models.User, team_id: int):
-    if user.mro is None:
-        user.mro = str(team_id)
+    if user.lro is None:
+        user.lro = str(team_id)
     else:
-        user.mro = f"{user.mro},{team_id}"
+        user.lro = f"{user.lro},{team_id}"
+    db.commit()
+
+
+def set_lro(db: Session, user: models.User, lro: Union[str, None]):
+    user.lro = lro  # type: ignore
     db.commit()
 
 

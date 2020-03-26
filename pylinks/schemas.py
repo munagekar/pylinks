@@ -82,3 +82,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     user_id: int
+
+
+class LROUpdate(BaseModel):
+    teams: List[str]
