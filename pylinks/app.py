@@ -320,7 +320,7 @@ def set_lro(lro: schemas.LROUpdate, user_id: int = Depends(get_current_user), db
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User Record Not Found")
 
     if not lro.teams:
-        crud.set_lro(db, user, lro=None)
+        crud.set_lro(db, user, lro="")
         return HTMLResponse(status_code=status.HTTP_200_OK)
 
     teams = crud.get_teams_by_names(db, lro.teams)

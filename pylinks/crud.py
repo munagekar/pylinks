@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -181,8 +181,9 @@ def append_to_lro(db: Session, user: models.User, team_id: int):
     db.commit()
 
 
-def set_lro(db: Session, user: models.User, lro: Union[str, None]):
-    user.lro = lro  # type: ignore
+def set_lro(db: Session, user: models.User, lro: str):
+    user.lro = lro
+    print("Chaning LRO=", lro)
     db.commit()
 
 
