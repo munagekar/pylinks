@@ -308,7 +308,9 @@ def get_lro(user_id: int = Depends(get_current_user), db: Session = Depends(get_
     team_ids = list(map(int, mro.split(",")))
     teams = crud.get_teams_by_ids(db, team_ids)
 
-    return [schemas.TeamBase(teamname=team.teamname) for team in teams]
+    team_name_dict = {team.id: team.teamname for team in teams}
+
+    return [schemas.TeamBase(teamname=team_name_dict[id]) for id in team_ids]
 
 
 @app.put("/lro")
