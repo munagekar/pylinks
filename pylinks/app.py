@@ -188,10 +188,10 @@ def create_team(
 
 
 @app.get(
-    "/team", response_model=schemas.TeamBase,
+    "/team/", response_model=schemas.TeamBase,
 )
 def list_teams(
-    user_id: int = Depends(get_current_user), db: Session = Depends(get_db()),
+    user_id: int = Depends(get_current_user), db: Session = Depends(get_db),
 ):
     roles = crud.get_team_roles(db, user_id=user_id)
     return [role.team for role in roles]
