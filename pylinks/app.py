@@ -329,7 +329,7 @@ def set_lro(lro: schemas.LROUpdate, user_id: int = Depends(get_current_user), db
     team_ids = [team.id for team in teams]
     user_roles = crud.get_user_team_roles(db, user.id, team_ids=team_ids)
 
-    if len(user_roles) <= len(teams):
+    if len(user_roles) < len(teams):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Insufficient Privilege")
 
     for role in user_roles:
