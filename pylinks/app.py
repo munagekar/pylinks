@@ -311,7 +311,7 @@ def get_lro(user_id: int = Depends(get_current_user), db: Session = Depends(get_
     return [schemas.TeamBase(teamname=team.teamname) for team in teams]
 
 
-@app.post("/lro")
+@app.put("/lro")
 def set_lro(lro: schemas.LROUpdate, user_id: int = Depends(get_current_user), db: Session = Depends(get_db)):
     user = crud.get_user_by_id(db, user_id)
     if not user:
