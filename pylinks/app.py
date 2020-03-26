@@ -187,6 +187,16 @@ def create_team(
     return schemas.TeamCreated(teamname=team.teamname, created=team.created)
 
 
+@app.get(
+    "/team", response_model=schemas.TeamBase,
+)
+def list_teams(
+    user_id: int = Depends(get_current_user), db: Session = Depends(get_db()),
+):
+    roles = crud.get_team_roles(db, user_id=user_id)
+    return [role.team for role in roles]
+
+
 @app.post(
     "/invite/", responses={400: {"details": "Invalid Teamname"}}, response_model=schemas.InviteCreated,
 )
