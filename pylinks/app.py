@@ -322,16 +322,14 @@ def set_lro(lro: schemas.LROUpdate, user_id: int = Depends(get_current_user), db
         return HTMLResponse(status_code=status.HTTP_200_OK)
 
     teams = crud.get_teams_by_names(db, lro.teams)
-    for team in teams:
-        print(team)
 
-    if None in teams:
+    if len(teams) <= len(lro.teams):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Teamname")
 
     team_ids = [team.id for team in teams]
     user_roles = crud.get_user_team_roles(db, user.id, team_ids=team_ids)
 
-    if None in user_roles:
+    if len(user_roles) <= len(teams):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Insufficient Privilege")
 
     for role in user_roles:
